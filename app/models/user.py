@@ -53,6 +53,15 @@ class User(Base): # user class represents a database table
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # defines relationship to the Calculation model/table 
+    # back_populates creates a bidirectional relationship between User and Calculation
+    # cascade ensures calculations are deleted when the user is deleted 
+    calculations = relationship(
+        "Calculation", 
+        back_populates="user", 
+        cascade="all, delete-orphan"
+    )
+
     # how the object is represented when printed/inspected in Python
     # useful for debugging and inspecting user objects
     # self = specific user object
