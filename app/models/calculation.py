@@ -5,10 +5,11 @@
 # imports required to provide the functionality needed to define the models and interact with the database
 from datetime import datetime # handles timestamps
 import uuid # hanldes unique identifers
-from typing import List # handles type hinting for lists
+
 from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Float # handles database columns and types
 from sqlalchemy.dialects.postgresql import UUID # handles PostgreSQL specific UUID type
 from sqlalchemy.orm import relationship, declared_attr # handles relationships between models and allows for dynamic attribute definition
+
 from app.database import Base # handles database connection and base class for models
 
 # foundations for the calculation model
@@ -59,6 +60,8 @@ class AbstractCalculation:
     # this is a discriminator column
     # this tells SQLAlchemy what kind of calculation each database record represents
     # different calculations can be stored in the same table 
+    @declared_attr
+    def type(cls):
         """        
         This column tells SQLAlchemy which subclass to instantiate when
         loading records from the database. Values include: 'addition',
@@ -72,17 +75,18 @@ class AbstractCalculation:
 
     # stores numbers used in the calcultion 
     @declared_attr
-    def inputs(cls):
-        """        
-        Using JSON allows for flexible storage of variable-length input lists.
-        PostgreSQL's native JSON support provides efficient querying and
-        indexing capabilities.
-        """
+    def a(cls):
         return Column(
-            JSON, # uses JSON because calculations can have different numbers of inputs
+            Float, 
             nullable=False
         )
-    # allows the app to store variable length lists without creating separate columns in the database for every number inputted
+    
+    @declared_atr
+    def b(cls):
+        return Column(
+            Float,
+            nullable=False
+        )
 
     # stores the calculated answer
     @declared_attr
@@ -132,13 +136,15 @@ class AbstractCalculation:
         back_populates creates a bidirectional relationship, allowing access
         to user.calculations and calculation.user.
         """
-        return relationship("User", back_populates="calculations")
+        return relationship(
+            "User", 
+            back_populates="calculations"
+        )
 
     # the Factory Pattern: creates objects without requiring calling the code to know wich specific class needs to be instantiated
     # similar to our initial calculator project, this will allow us to extend the dictionary of operations and create new subclasses without significantly changing the app
     @classmethod
-    def create(cls, calculation_type: str, user_id: uuid.UUID,
-               inputs: List[float]) -> "Calculation":
+    def create(cls, calculation_type: str, user_id: uuid.UUID, a: float, b: float):
      
         # dictionary that maps calculation types to their corresponding classes in Python
         calculation_classes = {
@@ -148,17 +154,25 @@ class AbstractCalculation:
             'division': Division,
         }
 
-        # looks up the requested calculation type
-        calculation_class = calculation_classes.get(calculation_type.lower()) # .lower() = case insensitive
+        if not isinstance(calcultion_type, str):
+            raise ValueError("Calculation type must be in the list of operations")
         
-        # if the requested calculation type is not found, raise an error
-        if not calculation_class:
-            raise ValueError(
-                f"Unsupported calculation type: {calculation_type}"
-            )
-        
-        # creates and returns the object of the requested calculation type, passing in the user_id and inputs
-        return calculation_class(user_id=user_id, inputs=inputs)
+        calculation_class = calculation_classes.get(
+            calculation_type.lower()
+        )
+
+        if not calculation_class: 
+            raise ValueError(f"Unsupported calculation type: {calculation_type}")
+
+        calculation = calculation_class(
+            user_id=user_id,
+            a=a,
+            b=b
+        )
+
+        calculation.result = calculation.get_result()
+
+        return calculation
 
     def get_result(self) -> float:
         """
@@ -176,7 +190,10 @@ class AbstractCalculation:
         )
 
     def __repr__(self):
-        return f"<Calculation(type={self.type}, inputs={self.inputs})>"
+        return (
+            f"<Calculation(type={self.type}, "
+            f"a={self.a}, b={self.b}, result={self.result})>"
+        )
 
 # where the actual SQLAchemy polymorphic inheritance is defined and happens
 class Calculation(Base, AbstractCalculation):
@@ -231,13 +248,7 @@ class Addition(Calculation):
         Raises:
             ValueError: If inputs is not a list or has fewer than 2 numbers
         """
-        if not isinstance(self.inputs, list): # checks if the inputs are in a list format, if not raises an error
-            raise ValueError("Inputs must be a list of numbers.")
-        if len(self.inputs) < 2: # checks that there are at least 2 numbers 
-            raise ValueError(
-                "Inputs must be a list with at least two numbers."
-            )
-        return sum(self.inputs) # uses sum() function to add all the numbers in the list and return the result
+        return self.a + self.b
 
 # handles subtraction calculations
 class Subtraction(Calculation):
@@ -264,16 +275,7 @@ class Subtraction(Calculation):
         Raises:
             ValueError: If inputs is not a list or has fewer than 2 numbers
         """
-        if not isinstance(self.inputs, list): # checks if the inputs are in a list format, if not raises an error
-            raise ValueError("Inputs must be a list of numbers.")
-        if len(self.inputs) < 2: # checks that there are at least 2 numbers 
-            raise ValueError(
-                "Inputs must be a list with at least two numbers."
-            )
-        result = self.inputs[0]
-        for value in self.inputs[1:]:
-            result -= value # subtracts the number from the current result
-        return result # returns result of the subtraction
+        return self.a - self.b
 
 # handles multiplication calculations
 class Multiplication(Calculation):
@@ -300,16 +302,7 @@ class Multiplication(Calculation):
         Raises:
             ValueError: If inputs is not a list or has fewer than 2 numbers
         """
-        if not isinstance(self.inputs, list): # checks if the inputs are in a list format, if not raises an error
-            raise ValueError("Inputs must be a list of numbers.")
-        if len(self.inputs) < 2:
-            raise ValueError(
-                "Inputs must be a list with at least two numbers."
-            )
-        result = 1 # starts with 1 because 1 is the multiplicative identity (anything multiplied by 1 is itself)
-        for value in self.inputs: # loop performs the multiplication operation on each number in the list
-            result *= value
-        return result # returns result of the multiplication
+        return self.a * self.b
 
 # handles division calculations
 class Division(Calculation):
@@ -340,15 +333,6 @@ class Division(Calculation):
             ValueError: If inputs is not a list, has fewer than 2 numbers,
                        or if attempting to divide by zero
         """
-        if not isinstance(self.inputs, list): # checks if the inputs are in a list format, if not raises an error
-            raise ValueError("Inputs must be a list of numbers.")
-        if len(self.inputs) < 2:
-            raise ValueError(
-                "Inputs must be a list with at least two numbers."
-            )
-        result = self.inputs[0]
-        for value in self.inputs[1:]:
-            if value == 0:
-                raise ValueError("Cannot divide by zero.") # validation: prevents the app from attempting to divide by zero
-            result /= value
-        return result # returns result of the division
+        if self.b == 0: 
+            raise ValueError("Cannot divide by zero.")
+        return self.a / self.b
