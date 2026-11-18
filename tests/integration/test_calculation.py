@@ -22,6 +22,13 @@ from app.schemas.calculation import (
     CalculationResponse
 )
 
+def test_database_is_postgresql(db_session):
+    database_type = db_session.get_bind().dialect.name
+
+    assert database_type == "postgresql", (
+        f"Expected PostgreSQL, but connected to {database_type}"
+    )
+
 def test_create_addition_calculation(db_session, test_user):
 
     calculation = Calculation.create(
@@ -154,22 +161,17 @@ def test_division_by_zero_schema():
             type="divide"
         )
 
-def test_division_by_zero_model(db_session, test_user):
-
-    calculation = Calculation.create(
-        calculation_type="divide",
-        user_id=test_user.id,
-        a=10,
-        b=0
-    )
-
-    # Factory should reject division by zero if it
-    # calculates and stores the result during creation.
-    # If it does not, get_result() should reject it.
-
-    with pytest.raises(ValueError, match="Cannot divide by zero"):
-        calculation.get_result()
-
+def test_division_by_zero_model_get_result(test_user):
+    with pytest.raises(
+        ValueError,
+        match="Cannot divide by zero"
+    ):
+        Calculation.create(
+            calculation_type="divide",
+            user_id=test_user.id,
+            a=10,
+            b=0
+        )
 
 @pytest.mark.parametrize(
     "invalid_a, invalid_b",
@@ -242,11 +244,20 @@ def test_calculation_response_schema(db_session, test_user):
     assert response.type == "multiply"
     assert response.result == 50
 
-def test_division_by_zero_model(test_user):
+def test_division_by_zero_model_create(test_user):
     with pytest.raises(ValueError, match="Cannot divide by zero"):
         Calculation.create(
             calculation_type="divide",
             user_id=test_user.id,
             a=10,
             b=0
+        )
+
+def test_invalid_calculation_type_model(test_user):
+    with pytest.raises(ValueError):
+        Calculation.create(
+            calculation_type="exponent",
+            user_id=test_user.id,
+            a=10,
+            b=5
         )
