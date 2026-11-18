@@ -6,20 +6,21 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
 
-def get_engine(database_url: str = settings.DATABASE_URL):
+def get_engine(database_url=None):
     """
     Create and return a new SQLAlchemy engine.
-
-    Args:
-        database_url (str): The database connection URL.
-
-    Returns:
-        Engine: A new SQLAlchemy Engine instance.
     """
+    if database_url is None:
+        database_url = settings.DATABASE_URL
+
     try:
-        # Create an engine instance with echo=True to log SQL queries (useful for learning)
-        engine = create_engine(database_url, echo=True)
+        engine = create_engine(
+            database_url,
+            echo=True,
+            pool_pre_ping=True
+        )
         return engine
+
     except SQLAlchemyError as e:
         print(f"Error creating engine: {e}")
         raise
