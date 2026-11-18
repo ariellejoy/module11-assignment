@@ -1,5 +1,6 @@
 import pytest
-import uuid
+import uuid 
+from uuid import uuid4
 
 from datetime import datetime
 from pydantic import ValidationError
@@ -7,6 +8,13 @@ from pydantic import ValidationError
 from app.schemas.base import UserCreate, UserRead, UserLogin
 from app.schemas.user import UserResponse, Token
 from app.models.user import User
+
+from app.schemas.calculation import (
+    CalculationCreate,
+    CalculationResponse,
+    CalculationType
+)
+from app.models.calculation import Addition
 
 # testing user creation
 def test_valid_user_create():
@@ -270,4 +278,93 @@ def test_user_read_from_orm():
     assert result.last_login is None
     assert result.created_at == now
     assert result.updated_at == now
+
+def test_valid_calculation_create():
+    calculation = CalculationCreate(
+        a=10,
+        b=5,
+        type="addition",
+        user_id=uuid.uuid4()
+    )
+    assert calculation.a == 10
+    assert calculation.b == 5
+    assert calculation.type == CalculationType.ADDITION
+
+def test_invalid_calculation_type():
+    with pytest.raises(ValidationError):
+        CalculationCreate(
+            a=10,
+            b=5,
+            type="exponent",
+            user_id=uuid.uuid4()
+        )
+
+def test_schema_division_by_zero():
+    with pytest.raises(ValidationError):
+        CalculationCreate(
+            a=10,
+            b=0,
+            type="division",
+            user_id=uuid.uuid4()
+        )
+
+def test_missing_a():
+    with pytest.raises(ValidationError):
+        CalculationCreate(
+            b=5,
+            type="addition",
+            user_id=uuid.uuid4()
+        )
+
+def test_missing_b():
+    with pytest.raises(ValidationError):
+        CalculationCreate(
+            a=10,
+            type="addition",
+            user_id=uuid.uuid4()
+        )
+
+def test_invalid_numeric_input():
+    with pytest.raises(ValidationError):
+        CalculationCreate(
+            a="hello",
+            b=5,
+            type="addition",
+            user_id=uuid.uuid4()
+        )
+
+def test_calculation_response():
+    calculation_id = uuid4()
+    user_id = uuid4()
+    now = datetime.now()
+
+    calculation = CalculationResponse(
+        id=calculation_id,
+        user_id=user_id,
+        a=10,
+        b=5,
+        type="addition",
+        result=15,
+        created_at=now,
+        updated_at=now
+    )
+    assert calculation.id == calculation_id
+    assert calculation.user_id == user_id
+    assert calculation.a == 10
+    assert calculation.b == 5
+    assert calculation.result == 15
+
+def test_negative_numbers():
+    calculation = CalculationCreate(
+        a=-10,
+        b=5,
+        type="addition",
+        user_id=uuid.uuid4()
+    )
+    assert calculation.a == -10
+    assert calculation.b == 5
+
+def test_decimal_numbers():
+    calculation = Addition(a=10.5, b=5.25)
+    assert calculation.get_result() == pytest.approx(15.75)
 
