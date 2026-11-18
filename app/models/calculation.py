@@ -235,7 +235,7 @@ class Addition(Calculation):
         add = Addition(user_id=user_id, inputs=[1, 2, 3])
         result = add.get_result()  # Returns 6
     """
-    __mapper_args__ = {"polymorphic_identity": "Add"} # tells SQLAlchemy that records with this type should be represented as Addition objects
+    __mapper_args__ = {"polymorphic_identity": "add"} # tells SQLAlchemy that records with this type should be represented as Addition objects
 
     # calculation method
     def get_result(self) -> float:
@@ -262,7 +262,7 @@ class Subtraction(Calculation):
         sub = Subtraction(user_id=user_id, inputs=[10, 3, 2])
         result = sub.get_result()  # Returns 5 (10 - 3 - 2)
     """
-    __mapper_args__ = {"polymorphic_identity": "Sub"} # tells SQLAlchemy that records with this type should be represented as Subtraction objects
+    __mapper_args__ = {"polymorphic_identity": "sub"} # tells SQLAlchemy that records with this type should be represented as Subtraction objects
 
     # calculation method
     def get_result(self) -> float:
@@ -289,7 +289,7 @@ class Multiplication(Calculation):
         mult = Multiplication(user_id=user_id, inputs=[2, 3, 4])
         result = mult.get_result()  # Returns 24
     """
-    __mapper_args__ = {"polymorphic_identity": "Multiply"} # tells SQLAlchemy that records with this type should be represented as Multiplication objects
+    __mapper_args__ = {"polymorphic_identity": "multiply"} # tells SQLAlchemy that records with this type should be represented as Multiplication objects
 
     # calculation method
     def get_result(self) -> float:
@@ -319,7 +319,7 @@ class Division(Calculation):
     Note: This implementation uses EAFP (Easier to Ask for Forgiveness than
     Permission) by checking for zero during calculation rather than before.
     """
-    __mapper_args__ = {"polymorphic_identity": "Divide"} # tells SQLAlchemy that records with this type should be represented as Division objects
+    __mapper_args__ = {"polymorphic_identity": "divide"} # tells SQLAlchemy that records with this type should be represented as Division objects
 
     # calculation method
     def get_result(self) -> float:

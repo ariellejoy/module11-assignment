@@ -33,10 +33,10 @@ class CalculationType(str, Enum):
     Inheriting from str makes this a string enum, so values serialize
     naturally as strings in JSON.
     """
-    ADDITION = "addition"
-    SUBTRACTION = "subtraction"
-    MULTIPLICATION = "multiplication"
-    DIVISION = "division"
+    ADDITION = "add"
+    SUBTRACTION = "sub"
+    MULTIPLICATION = "multiply"
+    DIVISION = "divide"
 
 # IMPORTANT CLASS!!!
 # defines the common fields that all calculation-related schemas need
