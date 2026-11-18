@@ -283,7 +283,7 @@ def test_valid_calculation_create():
     calculation = CalculationCreate(
         a=10,
         b=5,
-        type="addition",
+        type="add",
         user_id=uuid.uuid4()
     )
     assert calculation.a == 10
@@ -343,7 +343,7 @@ def test_calculation_response():
         user_id=user_id,
         a=10,
         b=5,
-        type="addition",
+        type="add",
         result=15,
         created_at=now,
         updated_at=now
@@ -358,7 +358,7 @@ def test_negative_numbers():
     calculation = CalculationCreate(
         a=-10,
         b=5,
-        type="addition",
+        type="add",
         user_id=uuid.uuid4()
     )
     assert calculation.a == -10
