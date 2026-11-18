@@ -6,7 +6,7 @@
 from datetime import datetime # handles timestamps
 import uuid # hanldes unique identifers
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Float # handles database columns and types
+from sqlalchemy import Column, String, DateTime, ForeignKey, Float # handles database columns and types
 from sqlalchemy.dialects.postgresql import UUID # handles PostgreSQL specific UUID type
 from sqlalchemy.orm import relationship, declared_attr # handles relationships between models and allows for dynamic attribute definition
 
@@ -81,7 +81,7 @@ class AbstractCalculation:
             nullable=False
         )
     
-    @declared_atr
+    @declared_attr
     def b(cls):
         return Column(
             Float,
@@ -148,13 +148,13 @@ class AbstractCalculation:
      
         # dictionary that maps calculation types to their corresponding classes in Python
         calculation_classes = {
-            'addition': Addition, # EX: when someone requests an additional calculation, the factory will create an instance of the Addition class
-            'subtraction': Subtraction,
-            'multiplication': Multiplication,
-            'division': Division,
+            'add': Addition, # EX: when someone requests an additional calculation, the factory will create an instance of the Addition class
+            'sub': Subtraction,
+            'multiply': Multiplication,
+            'divide': Division,
         }
 
-        if not isinstance(calcultion_type, str):
+        if not isinstance(calculation_type, str):
             raise ValueError("Calculation type must be in the list of operations")
         
         calculation_class = calculation_classes.get(
@@ -235,7 +235,7 @@ class Addition(Calculation):
         add = Addition(user_id=user_id, inputs=[1, 2, 3])
         result = add.get_result()  # Returns 6
     """
-    __mapper_args__ = {"polymorphic_identity": "addition"} # tells SQLAlchemy that records with this type should be represented as Addition objects
+    __mapper_args__ = {"polymorphic_identity": "Add"} # tells SQLAlchemy that records with this type should be represented as Addition objects
 
     # calculation method
     def get_result(self) -> float:
@@ -262,7 +262,7 @@ class Subtraction(Calculation):
         sub = Subtraction(user_id=user_id, inputs=[10, 3, 2])
         result = sub.get_result()  # Returns 5 (10 - 3 - 2)
     """
-    __mapper_args__ = {"polymorphic_identity": "subtraction"} # tells SQLAlchemy that records with this type should be represented as Subtraction objects
+    __mapper_args__ = {"polymorphic_identity": "Sub"} # tells SQLAlchemy that records with this type should be represented as Subtraction objects
 
     # calculation method
     def get_result(self) -> float:
@@ -289,7 +289,7 @@ class Multiplication(Calculation):
         mult = Multiplication(user_id=user_id, inputs=[2, 3, 4])
         result = mult.get_result()  # Returns 24
     """
-    __mapper_args__ = {"polymorphic_identity": "multiplication"} # tells SQLAlchemy that records with this type should be represented as Multiplication objects
+    __mapper_args__ = {"polymorphic_identity": "Multiply"} # tells SQLAlchemy that records with this type should be represented as Multiplication objects
 
     # calculation method
     def get_result(self) -> float:
@@ -319,7 +319,7 @@ class Division(Calculation):
     Note: This implementation uses EAFP (Easier to Ask for Forgiveness than
     Permission) by checking for zero during calculation rather than before.
     """
-    __mapper_args__ = {"polymorphic_identity": "division"} # tells SQLAlchemy that records with this type should be represented as Division objects
+    __mapper_args__ = {"polymorphic_identity": "Divide"} # tells SQLAlchemy that records with this type should be represented as Division objects
 
     # calculation method
     def get_result(self) -> float:

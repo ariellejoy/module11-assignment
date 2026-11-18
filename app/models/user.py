@@ -10,8 +10,7 @@ from typing import Optional, Dict, Any
 # interacting with the database
 from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import relationship
 
 # handles password hashing
 from passlib.context import CryptContext
@@ -24,7 +23,8 @@ from pydantic import ValidationError
 from app.schemas.base import UserCreate
 from app.schemas.user import UserResponse, Token
 
-Base = declarative_base() # database foundations
+# import shared database
+from app.database import Base
 
 # configures how passwords are hashed
 pwd_context = CryptContext(
@@ -92,7 +92,7 @@ class User(Base): # user class represents a database table
     # verifies and decodes a JWT token
     # should return UUID representing authenticated user or None if fails
     @staticmethod
-    def verify_token(token: str) -> Optional[UUID]:
+    def verify_token(token: str) -> Optional[uuid.UUID]:
         try: # decodes and verifies the JWT token, checks expiration claim
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             user_id = payload.get("sub") # retrieves ID from token
