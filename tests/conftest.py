@@ -6,6 +6,7 @@ import logging
 from typing import Generator, Dict, List
 from contextlib import contextmanager
 
+import os
 import pytest
 import requests
 from faker import Faker
@@ -16,8 +17,11 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.database import Base, get_engine, get_sessionmaker
 from app.models.user import User
+from app.models.calculation import Calculation
 from app.config import settings
 from app.database_init import init_db, drop_db
+
+
 
 # ======================================================================================
 # Logging Configuration
@@ -34,12 +38,17 @@ logger = logging.getLogger(__name__)
 fake = Faker()
 Faker.seed(12345)
 
-logger.info(f"Using database URL: {settings.DATABASE_URL}")
+# Use the dedicated test database URL when provided.
+# Otherwise, fall back to the application database URL.
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    settings.DATABASE_URL
+)
 
-# Create an engine and sessionmaker based on DATABASE_URL using factory functions
-test_engine = get_engine(database_url=settings.DATABASE_URL)
+logger.info("Configuring test database connection.")
+
+test_engine = get_engine(database_url=TEST_DATABASE_URL)
 TestingSessionLocal = get_sessionmaker(engine=test_engine)
-
 # ======================================================================================
 # Helper Functions
 # ======================================================================================
@@ -103,38 +112,40 @@ class ServerStartupError(Exception):
 # ======================================================================================
 # Primary Database Fixtures
 # ======================================================================================
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database(request):
     """
-    Initialize the test database once per session:
-    - Drop all existing tables to ensure a clean state.
-    - Create all tables based on the current models.
-    - Optionally initialize the database with seed data.
-    After tests, drop all tables unless --preserve-db is set.
+    Initialize the test database once per session.
+
+    - Drop existing tables.
+    - Create tables using the shared SQLAlchemy Base.
+    - Clean up after tests unless --preserve-db is enabled.
     """
+
     logger.info("Setting up test database...")
 
-    # Drop all tables to ensure a clean slate
+    # Ensure both User and Calculation models are registered.
+    from app.models.user import User
+    from app.models.calculation import Calculation
+
+    # Create tables using the dedicated test engine.
     Base.metadata.drop_all(bind=test_engine)
-    logger.info("Dropped all existing tables.")
+    logger.info("Dropped existing test tables.")
 
-    # Create all tables
     Base.metadata.create_all(bind=test_engine)
-    logger.info("Created all tables based on models.")
+    logger.info("Created test tables.")
 
-    # Initialize the database (e.g., run migrations or seed data)
-    init_db()
-    logger.info("Initialized the test database with initial data.")
-
-    yield  # All tests run here
+    yield
 
     preserve_db = request.config.getoption("--preserve-db")
+
     if preserve_db:
-        logger.info("Skipping drop_db due to --preserve-db flag.")
+        logger.info("Preserving test database.")
     else:
-        logger.info("Cleaning up test database...")
-        drop_db()
-        logger.info("Dropped test database tables.")
+        logger.info("Cleaning up test database.")
+        Base.metadata.drop_all(bind=test_engine)
+        logger.info("Dropped test tables.")
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
@@ -318,38 +329,3 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
-
-# ======================================================================================
-# How to Use This File
-# ======================================================================================
-"""
-Basic Examples:
-
-1. Test DB operations:
-   def test_create_user(db_session):
-       user = User(username="test", email="test@example.com")
-       db_session.add(user)
-       db_session.commit()
-
-2. Using fake data:
-   def test_with_fake_data(fake_user_data):
-       user = User(**fake_user_data)
-       # proceed with test logic...
-
-3. Working with a test user:
-   def test_user_update(test_user):
-       test_user.username = "new_username"
-       # test logic...
-
-4. Testing with multiple users:
-   @pytest.mark.parametrize('seed_users', [10], indirect=True)
-   def test_user_list(seed_users):
-       # seed_users contains 10 test users
-       assert len(seed_users) == 10
-
-Command Examples:
-- Basic run: pytest
-- Keep database afterward (skip table truncation & drop): pytest --preserve-db
-- Include slow tests: pytest --run-slow
-- Show output: pytest -v -s
-"""
