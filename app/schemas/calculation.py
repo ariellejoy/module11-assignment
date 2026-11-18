@@ -99,7 +99,7 @@ class CalculationBase(BaseModel): # creates a pydantic model called CalculationB
     # Validate division
     @model_validator(mode="after")
     def validate_division(self):
-        if self.type == CalculationType.DIVIDE and self.b == 0:
+        if self.type == CalculationType.DIVISION and self.b == 0:
             raise ValueError("Cannot divide by zero")
 
         return self
